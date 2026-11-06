@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Metrics & Model Dashboard - DS307 Computer Vision{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h3 class="fw-bold text-dark mb-0">Model Performance & Class Histograms</h3>
+                <p class="text-muted small mb-0">Quantitative evaluation of the Bayesian Spam Image Filter on hold-out test set</p>
+            </div>
+            <a href="/batch" class="btn btn-outline-primary fw-semibold btn-sm">
+                <i class="fa-solid fa-table me-1"></i> View Sample-by-Sample Predictions
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm rounded-3 p-3 text-center bg-white border-start border-primary border-4">
+            <span class="text-muted small fw-semibold text-uppercase">Test Accuracy</span>
+            <h2 class="fw-bold text-primary mb-0">{{ metrics.accuracy }}%</h2>
+            <span class="text-success small fw-semibold"><i class="fa-solid fa-check"></i> Overall Correctness</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm rounded-3 p-3 text-center bg-white border-start border-success border-4">
+            <span class="text-muted small fw-semibold text-uppercase">Precision</span>
+            <h2 class="fw-bold text-success mb-0">{{ metrics.precision }}%</h2>
+            <span class="text-muted small">Low False Positive Rate</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm rounded-3 p-3 text-center bg-white border-start border-warning border-4">
+            <span class="text-muted small fw-semibold text-uppercase">Recall (Sensitivity)</span>
+            <h2 class="fw-bold text-warning mb-0">{{ metrics.recall }}%</h2>
+            <span class="text-muted small">High Spam Catch Rate</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm rounded-3 p-3 text-center bg-white border-start border-danger border-4">
+            <span class="text-muted small fw-semibold text-uppercase">ROC &middot; AUC</span>
+            <h2 class="fw-bold text-danger mb-0">{{ metrics.auc }}</h2>
+            <span class="text-muted small">Discriminative Power</span>
+        </div>
+    </div>
+</div>
+
+<!-- Evaluation Plots Section -->
+<div class="row g-4 mb-4">
+    <!-- Confusion Matrix -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-3 h-100 bg-white">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-table-cells text-primary me-2"></i> Confusion Matrix</h5>
+            </div>
+            <div class="card-body text-center">
+                <img src="{{ url_for('static', filename='results/confusion_matrix.png') }}" class="img-fluid rounded border" alt="Confusion Matrix">
+                <div class="mt-3 text-start small text-muted">
+                    <p class="mb-1"><strong>True Positives (TP):</strong> {{ metrics.true_positives }} &middot; Spam correctly identified as Spam.</p>
+                    <p class="mb-1"><strong>True Negatives (TN):</strong> {{ metrics.true_negatives }} &middot; Ham correctly identified as Ham.</p>
+                    <p class="mb-1"><strong>False Positives (FP):</strong> {{ metrics.false_positives }} &middot; Ham incorrectly flagged as Spam.</p>
+                    <p class="mb-0"><strong>False Negatives (FN):</strong> {{ metrics.false_negatives }} &middot; Spam missed by the filter.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROC Curve -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-3 h-100 bg-white">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-chart-line text-danger me-2"></i> Receiver Operating Characteristic (ROC)</h5>
+            </div>
+            <div class="card-body text-center">
+                <img src="{{ url_for('static', filename='results/roc_curve.png') }}" class="img-fluid rounded border" alt="ROC Curve">
+                <div class="mt-3 text-start small text-muted">
+                    <p class="mb-1">The ROC curve plots <strong>True Positive Rate (Sensitivity)</strong> against <strong>False Positive Rate (1 - Specificity)</strong> across all operating decision thresholds &tau; &in; [0, 1].</p>
+                    <p class="mb-0"><strong>Area Under Curve (AUC):</strong> {{ metrics.auc }} demonstrates separation between spam advertisements and natural images.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Learned Class Histograms Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-3 bg-white">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-chart-simple text-success me-2"></i> Learned Class Conditional Histograms P(Feature | Class)</h5>
+            </div>
+            <div class="card-body text-center">
+                <img src="{{ url_for('static', filename='results/class_histograms.png') }}" class="img-fluid rounded border w-100" alt="Class Histograms">
+                <div class="mt-3 text-start small text-muted">
+                    <p class="mb-1"><strong>Key Insights:</strong></p>
+                    <ul class="mb-0">
+                        <li><strong>Edge Gradient Magnitude:</strong> Spam images exhibit prominent probability mass at higher gradient bins due to crisp text typography, sharp rectangular coupon badges, and exclamation marks. Natural ham images exhibit predominantly smooth transitions.</li>
+                        <li><strong>Hue Chromaticity:</strong> Spam distributions concentrate around attention-grabbing banner hues (saturated red, yellow, high-contrast cyan), while ham distributions center around landscape greens, sky blues, and organic neutrals.</li>
+                        <li><strong>Color Saturation:</strong> Spam features a sharp peak near maximum saturation ($S > 180$), whereas natural photos have rich gradations of pastel and muted mid-level saturations.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hyperparameters & Settings Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-3 bg-white">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-gears text-secondary me-2"></i> Model Parameters & Configuration</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped small mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Value</th>
+                                <th>Theoretical Significance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>RGB Quantization Bins</strong></td>
+                                <td>{{ meta.rgb_bins }} per channel ({{ meta.rgb_bins }}&times;{{ meta.rgb_bins }}&times;{{ meta.rgb_bins }} = 4,096 bins)</td>
+                                <td>Quantizes full 24-bit RGB space to reduce sparsity while capturing fine color discrimination.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Hue &times; Saturation Bins</strong></td>
+                                <td>{{ meta.h_bins }} Hue &times; {{ meta.s_bins }} Saturation (288 bins)</td>
+                                <td>Decouples chromaticity from illumination; provides robust color classification across lighting.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Edge Gradient Bins</strong></td>
+                                <td>{{ meta.edge_bins }} bins (Sobel magnitude)</td>
+                                <td>Captures synthetic text density, border frames, and artificial sharp graphics.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Laplace Smoothing (&alpha;)</strong></td>
+                                <td>{{ meta.alpha }}</td>
+                                <td>Additive smoothing prevents zero-probability traps for unseen color combinations.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Default Prior P(Spam)</strong></td>
+                                <td>{{ meta.prior_spam }}</td>
+                                <td>Base belief before observing image evidence. Interactive slider allows real-time adjustment.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Training Dataset Size</strong></td>
+                                <td>{{ meta.n_spam_train }} Spam + {{ meta.n_ham_train }} Ham images</td>
+                                <td>Benchmark balanced dataset for estimating empirical class histograms.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{
+    "total_samples": 40,
+    "spam_samples": 20,
+    "ham_samples": 20,
+    "threshold": 0.5,
+    "true_positives": 20,
+    "true_negatives": 20,
+    "false_positives": 0,
+    "false_negatives": 0,
+    "accuracy": 100.0,
+    "precision": 100.0,
+    "recall": 100.0,
+    "specificity": 100.0,
+    "f1_score": 100.0,
+    "auc": 1.0
+}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Theory & Architecture - Bayesian Spam Image Filter{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-9 mx-auto">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-4 mb-4">
+            <h2 class="fw-bold text-dark border-bottom pb-3 mb-4">
+                <i class="fa-solid fa-graduation-cap text-primary me-2"></i> Project Architecture & Theory
+            </h2>
+
+            <h5 class="fw-bold text-primary mt-2">1. Background & Computer Vision Motivation</h5>
+            <p class="text-secondary">
+                Image spam (unsolicited promotional advertisements, scam banners, phishing graphics, counterfeit vouchers) embedded in emails or web feeds bypass traditional textual keyword filters because spam texts are embedded directly inside pixel data.
+                In <strong>DS307 Computer Vision (Unit 4: Classifiers)</strong>, classical histogram-based classification provides an interpretable, highly efficient probabilistic technique to classify images based on class conditional feature distributions.
+            </p>
+
+            <h5 class="fw-bold text-primary mt-4">2. Mathematical Formulation: Bayes' Decision Rule</h5>
+            <p class="text-secondary">
+                Given an input image $I$, we seek the posterior probability that $I$ belongs to the Spam class ($C = \text{Spam}$) versus the Legitimate/Ham class ($C = \text{Ham}$):
+            </p>
+            <div class="p-3 bg-light rounded border text-center my-3 font-monospace">
+                P(Spam | I) = [ P(I | Spam) &times; P(Spam) ] / P(I)
+            </div>
+            <p class="text-secondary">
+                Where:
+            </p>
+            <ul>
+                <li><strong>P(Spam)</strong> is the <em>Prior Probability</em>: our initial belief before examining the image.</li>
+                <li><strong>P(I | Spam)</strong> is the <em>Class-Conditional Likelihood</em>: the probability of observing the image's feature distributions given that it is spam.</li>
+                <li><strong>P(I)</strong> is the <em>Total Evidence</em>: $P(I | \text{Spam})P(\text{Spam}) + P(I | \text{Ham})P(\text{Ham})$.</li>
+            </ul>
+
+            <h5 class="fw-bold text-primary mt-4">3. Class-Conditional Feature Histograms</h5>
+            <p class="text-secondary">
+                To evaluate $P(I | C)$, we discretize visual feature spaces into multi-dimensional histograms:
+            </p>
+            <ol>
+                <li><strong>Quantized 3D RGB Color Histogram ($16 \times 16 \times 16 = 4,096$ bins):</strong>
+                    Captures fine-grained RGB distributions. Spam images concentrate in vivid, primary, and saturated color regions.
+                </li>
+                <li><strong>2D Hue-Saturation Histogram ($18 \times 16 = 288$ bins):</strong>
+                    Decouples chromaticity (Hue) and purity (Saturation) from lighting intensity (Value).
+                </li>
+                <li><strong>1D Edge Gradient Histogram ($16$ bins):</strong>
+                    Computed via Sobel operator $\sqrt{I_x^2 + I_y^2}$. High gradient magnitude counts correspond to sharp synthetic typography and banner outlines.
+                </li>
+            </ol>
+
+            <h5 class="fw-bold text-primary mt-4">4. Laplace (Additive) Smoothing</h5>
+            <p class="text-secondary">
+                In empirical histogram estimation, an unseen color or gradient bin in a test image would yield a count of $0$, resulting in a zero probability $P(b | C) = 0$ and $-\infty$ log-likelihood. To prevent zero-frequency traps, we apply Laplace smoothing:
+            </p>
+            <div class="p-3 bg-light rounded border text-center my-3 font-monospace">
+                P(b | Class) = [ Count(b) + &alpha; ] / [ &Sigma; Count(k) + &alpha; &times; K ]
+            </div>
+            <p class="text-secondary">
+                Where $\alpha = 1.0$ is the smoothing parameter and $K$ is the total number of histogram bins.
+            </p>
+
+            <h5 class="fw-bold text-primary mt-4">5. Pixel-Wise Bayesian Spam Likelihood Heatmap</h5>
+            <p class="text-secondary">
+                For each pixel $p(x, y)$ in the test image, the Bayesian classifier evaluates the local posterior probability:
+            </p>
+            <div class="p-3 bg-light rounded border text-center my-3 font-monospace">
+                P(Spam | p) = [ P(p | Spam) &times; P(Spam) ] / [ P(p | Spam) &times; P(Spam) + P(p | Ham) &times; P(Ham) ]
+            </div>
+            <p class="text-secondary">
+                This produces a 2D spatial heatmap overlaid onto the image with a pseudo-color JET map. It visually localizes exactly which regions (e.g. bright neon "BUY NOW" buttons or discount banners) contributed to flagging the image as spam!
+            </p>
+
+            <div class="mt-4 pt-3 border-top text-center">
+                <a href="/" class="btn btn-primary fw-bold px-4 me-2">
+                    <i class="fa-solid fa-play me-1"></i> Try Live Classifier
+                </a>
+                <a href="/dashboard" class="btn btn-outline-secondary fw-semibold px-4">
+                    <i class="fa-solid fa-chart-line me-1"></i> View Test Results
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

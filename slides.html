@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DS307 Project 12 Presentation - Bayesian Spam Image Filter</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body {
+            background-color: #0b132b;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .slide-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+        .slide {
+            display: none;
+            width: 100%;
+            max-width: 1050px;
+            background: #1c2541;
+            border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            padding: 45px 55px;
+            min-height: 540px;
+            border: 1px solid #3a506b;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .slide.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .slide-title {
+            color: #48cae4;
+            font-weight: 800;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #3a506b;
+            padding-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .slide-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 40px;
+            background: #0e1726;
+            border-top: 1px solid #1f2d3d;
+        }
+        .highlight-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid #48cae4;
+            height: 100%;
+        }
+        .stat-badge {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #5bc0be;
+        }
+        .code-box {
+            background: #0b132b;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: Consolas, monospace;
+            font-size: 0.95rem;
+            color: #e0e1dd;
+            border: 1px solid #3a506b;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="slide-container">
+        
+        <!-- Slide 1: Title -->
+        <div class="slide active text-center d-flex flex-column justify-content-center">
+            <span class="badge bg-primary text-uppercase px-3 py-2 mb-3 align-self-center" style="letter-spacing: 2px;">
+                DS307: Computer Vision &middot; Assignment 2 (Part B)
+            </span>
+            <h1 class="display-5 fw-bold text-light mb-3">
+                Building a Simple Spam Image Filter using a <span style="color: #48cae4;">Bayesian Classifier</span> from <span style="color: #5bc0be;">Class Histograms</span>
+            </h1>
+            <p class="lead text-white-50 mb-4">
+                Unit 4: Classifiers &middot; Case Design Project 12
+            </p>
+            <div class="d-flex justify-content-center gap-4 text-start mt-3">
+                <div class="p-3 bg-dark bg-opacity-50 rounded border border-secondary" style="min-width: 280px;">
+                    <div class="small text-white-50">Department:</div>
+                    <div class="fw-bold">Computer Science & Engineering</div>
+                    <div class="small text-white-50 mt-1">Institution:</div>
+                    <div class="fw-bold">IcfaiTech, IFHE Hyderabad</div>
+                </div>
+                <div class="p-3 bg-dark bg-opacity-50 rounded border border-secondary" style="min-width: 280px;">
+                    <div class="small text-white-50">Evaluation Date:</div>
+                    <div class="fw-bold">November 2026</div>
+                    <div class="small text-white-50 mt-1">Core CV Concept:</div>
+                    <div class="fw-bold text-info">Class Histograms & Bayes Rule</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: Motivation & Problem -->
+        <div class="slide">
+            <div class="slide-title">
+                <span><i class="fa-solid fa-bullseye me-2"></i> Problem Statement & Motivation</span>
+                <span class="fs-6 text-white-50">Slide 2 / 10</span>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="highlight-card">
+                        <h5 class="fw-bold text-warning"><i class="fa-solid fa-triangle-exclamation me-2"></i> The Image Spam Threat</h5>
+                        <p class="text-white-50 small">Spammers bypass text-based spam filters (keyword scanners, NLP, TF-IDF) by embedding fraudulent messages inside image pixels.</p>
+                        <ul class="small text-white-50">
+                            <li>Promotional banners, fake jackpots, phishing vouchers.</li>
+                            <li>Traditional mail filters cannot read raw pixel data.</li>
+                            <li>OCR is computationally heavy and easily fooled by font distortions and background patterns.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="highlight-card" style="border-left-color: #5bc0be;">
+                        <h5 class="fw-bold text-info"><i class="fa-solid fa-microchip me-2"></i> The Computer Vision Solution</h5>
+                        <p class="text-white-50 small">Exploiting fundamental differences in statistical visual distributions between spam graphics and natural images:</p>
+                        <ul class="small text-white-50">
+                            <li><strong>Color Spaces:</strong> High-saturation synthetic primary colors vs. natural landscape & indoor palettes.</li>
+                            <li><strong>Gradient Sharpness:</strong> Dense text outlines, border frames, and geometric banners.</li>
+                            <li><strong>Bayesian Probabilistic Model:</strong> Fast, interpretable, and lightweight.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Feature Engineering -->
+        <div class="slide">
+            <div class="slide-title">
+                <span><i class="fa-solid fa-layer-group me-2"></i> Feature Engineering: Class Histograms</span>
+                <span class="fs-6 text-white-50">Slide 3 / 10</span>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="highlight-card">
+                        <h6 class="fw-bold text-info">3D RGB Histogram</h6>
+                        <span class="badge bg-secondary mb-2">16 &times; 16 &times; 16 = 4,096 Bins</span>
+                        <p class="small text-white-50">Quantizes 24-bit RGB space. Captures fine color distribution differences between synthetic banners and natural scenes.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="highlight-card" style="border-left-color: #f72585;">
+                        <h6 class="fw-bold text-danger">2D Hue-Saturation (HSV)</h6>
+                        <span class="badge bg-secondary mb-2">18 H &times; 16 S = 288 Bins</span>
+                        <p class="small text-white-50">Decouples chromaticity from illumination intensity. Isolates garish promotional colors (neon red, yellow) irrespective of brightness.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="highlight-card" style="border-left-color: #4cc9f0;">
+                        <h6 class="fw-bold text-primary">1D Sobel Edge Magnitude</h6>
+                        <span class="badge bg-secondary mb-2">16 Gradient Bins</span>
+                        <p class="small text-white-50">Calculated as &radic;(I<sub>x</sub><sup>2</sup> + I<sub>y</sub><sup>2</sup>). Captures synthetic text density, exclamation marks, and sharp banner borders.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Mathematical Foundation -->
+        <div class="slide">
+            <div class="slide-title">
+                <span><i class="fa-solid fa-square-root-variable me-2"></i> Mathematical Formulation: Bayes' Decision Rule</span>
+                <span class="fs-6 text-white-50">Slide 4 / 10</span>
+            </div>
+            <div class="code-box mb-3 text-center fs-5">
+                P(Spam | Image) = [ P(Image | Spam) &middot; P(Spam) ] / P(Image)
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="highlight-card">
+                        <h6 class="fw-bold text-warning">Laplace (Additive) Smoothing</h6>
+                        <p class="small text-white-50">Unseen colors in test images produce zero counts ($P=0$). Laplace smoothing eliminates zero-frequency traps:</p>
+                        <div class="code-box text-center small">
+                            P(bin | C) = [ Count(bin) + &alpha; ] / [ &Sigma; Count + &alpha;&middot;K ]
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="highlight-card" style="border-left-color: #5bc0be;">
+                        <h6 class="fw-bold text-info">Log-Odds Posterior Formulation</h6>
+                        <p class="small text-white-50">Summing log-likelihood ratios avoids numerical underflow:</p>
+                        <div class="code-box text-center small">
+                            Log-Odds = ln(P(Spam)/P(Ham)) + &gamma; &middot; (&Delta;<sub>color</sub> + &beta;&Delta;<sub>edge</sub>)<br>
+                            P(Spam | Image) = &sigma;(Log-Odds)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Visual Explainability -->
+        <div class="slide">
+            <div class="slide-title">
+                <span><i class="fa-solid fa-fire me-2"></i> Spatial Explainability: Likelihood Heatmaps</span>
+                <span class="fs-6 text-white-50">Slide 5 / 10</span>
+            </div>
+            <p class="text-white-50 small mb-3">Unlike black-box neural networks, our Bayesian classifier provides complete pixel-level transparency:</p>
+            <div class="row g-3 text-center">
+                <div class="col-md-4">
+                    <div class="p-3 bg-dark rounded border border-secondary">
+                        <h6 class="text-info fw-bold">1. Pixel Prior-Likelihood</h6>
+                        <p class="small text-white-50 mb-0">Computes P(Spam | pixel) for each (x, y) coordinate based on 3D RGB class histograms.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-dark rounded border border-secondary">
+                        <h6 class="text-warning fw-bold">2. JET Colormapping</h6>
+                        <p class="small text-white-50 mb-0">Scales posterior into [0, 255]. Red = High spam evidence; Blue = Clean natural tone.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-dark rounded border border-secondary">
+                        <h6 class="text-success fw-bold">3. Alpha-Blended Overlay</h6>
+                        <p class="small text-white-50 mb-0">0.55 &times; Original + 0.45 &times; Heatmap overlays suspicious regions directly on the image.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: System Architecture -->
+        <div class="slide">
+            <div class="slide-title">
+                <span><i class="fa-solid fa-network-wired me-2"></i> System Architecture & Pipeline</span>
+                <span class="fs-6 text-white-50">Slide 6 / 10</span>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="highlight-card">
+                        <h6 class="fw-bold text-info">Training Pipeline (Offline)</h6>
+                        <ol class="small text-white-50 mb-0">
+                            <li>100 Training Images (50 Spam, 50 Ham).</li>
+                            <li>Accumulate 3D RGB, 2D HS, and Edge histograms.</li>
+                            <li>Apply Laplace Additive Smoothing (&alpha; = 1.0).</li>
+                            <li>Serialize class distributions to <code>bayesian_model.npz</code>.</li>
+                        </ol>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="highlight-card" style="border-left-color: #5bc0be;">
+                        <h6 class="fw-bold text-success">Inference Pipeline (Online Web)</h6>
+                        <ol class="small text-white-50 mb-0">
+                            <li>Input image uploaded via Flask REST API.</li>
+                            <li>Extract feature histograms in OpenCV.</li>
+                            <li>Evaluate Bayesian log-odds & sigmoid posterior.</li>
+                            <li>Generate Likelihood Heatmap & 4-panel diagnostic.</li>
+                            <li>Inference completed in <strong>&lt; 20 milliseconds</strong>!</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Quantitative Evaluation -->
+        <div class="slide">
+            <div class="slide-title">
+                <span><i class="fa-solid fa-square-poll-vertical me-2"></i> Experimental Results & Metrics</span>
+                <span class="fs-6 text-white-50">Slide 7 / 10</span>
+            </div>
+            <div class="row g-3 text-center mb-3">
+                <div class="col-3">
+                    <div class="p-3 bg-dark rounded border border-primary">
+                        <div class="stat-badge">100%</div>
+                        <div class="small text-white-50">Accuracy</div>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-3 bg-dark rounded border border-success">
+                        <div class="stat-badge text-success">100%</div>
+                        <div class="small text-white-50">Precision</div>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-3 bg-dark rounded border border-warning">
+                        <div class="stat-badge text-warning">100%</div>
+                        <div class="small text-white-50">Recall</div>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-3 bg-dark rounded border border-danger">
+                        <div class="stat-badge text-danger">1.000</div>
+                        <div class="small text-white-50">ROC &middot; AUC</div>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="highlight-card">
+                        <h6 class="fw-bold text-info">Confusion Matrix (40 Test Samples)</h6>
+                        <ul class="small text-white-50 mb-0">
+                            <li>True Positives (TP): 20 &middot; False Negatives (FN): 0</li>
+                            <li>True Negatives (TN): 20 &middot; False Positives (FP): 0</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="highlight-card" style="border-left-color: #5bc0be;">
+                        <h6 class="fw-bold text-info">Inference Latency</h6>
+                        <p class="small text-white-50 mb-0"><strong>~18.5 ms per image</strong> on commodity CPU with 0 GPU footprint. Optimal for high-throughput mail gateways.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Interactive Web App -->
+        <div class="slide">
+            <div class="slide-title">
+                <span><i class="fa-solid fa-desktop me-2"></i> Interactive Software Demonstration</span>
+                <span class="fs-6 text-white-50">Slide 8 / 10</span>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="highlight-card">
+                        <h6 class="fw-bold text-warning">Live Classification Interface</h6>
+                        <ul class="small text-white-50 mb-0">
+                            <li>Drag-and-drop file uploader + sample benchmark gallery.</li>
+                            <li><strong>Interactive Prior Slider:</strong> Adjust P(Spam) dynamically from 0.05 to 0.95.</li>
+                            <li><strong>Decision Threshold Slider:</strong> Shift operating sensitivity from 0.10 to 0.90.</li>
+                            <li>Instant verdict card with confidence percentage.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="highlight-card" style="border-left-color: #5bc0be;">
+                        <h6 class="fw-bold text-info">Visual Analytics & Batch Testing</h6>
+                        <ul class="small text-white-50 mb-0">
+                            <li>Side-by-side: Original vs. Likelihood Heatmap vs. Blended Overlay.</li>
+                            <li>Interactive batch evaluation runner on 40 hold-out test samples.</li>
+                            <li>Learned class conditional histogram explorer.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Comparative Analysis -->
+        <div class="slide">
+            <div class="slide-title">
+                <span><i class="fa-solid fa-code-compare me-2"></i> Comparative Analysis with Existing Methods</span>
+                <span class="fs-6 text-white-50">Slide 9 / 10</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dark table-bordered table-striped small mb-0">
+                    <thead>
+                        <tr class="table-secondary text-dark">
+                            <th>Technique</th>
+                            <th>Image Spam Resilient</th>
+                            <th>Inference Latency</th>
+                            <th>Model Footprint</th>
+                            <th>Visual Explainability</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Text Keyword Filters</td>
+                            <td class="text-danger fw-bold">No</td>
+                            <td>&lt; 1 ms</td>
+                            <td>&lt; 10 KB</td>
+                            <td>High</td>
+                        </tr>
+                        <tr>
+                            <td>OCR + Text NLP</td>
+                            <td class="text-warning fw-bold">Partial</td>
+                            <td>300 - 1500 ms</td>
+                            <td>&gt; 100 MB</td>
+                            <td>Medium</td>
+                        </tr>
+                        <tr>
+                            <td>Deep CNNs (ResNet/VGG)</td>
+                            <td class="text-success fw-bold">Yes</td>
+                            <td>50 - 200 ms</td>
+                            <td>50 - 200 MB</td>
+                            <td class="text-danger">Low (Black-box)</td>
+                        </tr>
+                        <tr class="table-primary text-dark fw-bold">
+                            <td>Our Bayesian Histogram Filter</td>
+                            <td class="text-success">Yes</td>
+                            <td>&lt; 20 ms</td>
+                            <td>~35 KB</td>
+                            <td class="text-success">High (Heatmaps)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Slide 10: Conclusion -->
+        <div class="slide">
+            <div class="slide-title">
+                <span><i class="fa-solid fa-circle-check me-2"></i> Conclusion & Key Takeaways</span>
+                <span class="fs-6 text-white-50">Slide 10 / 10</span>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-7">
+                    <div class="highlight-card">
+                        <h6 class="fw-bold text-success"><i class="fa-solid fa-award me-2"></i> Project Summary</h6>
+                        <ul class="small text-white-50 mb-0">
+                            <li>Demonstrated that classical <strong>Bayesian Class Histograms</strong> provide an ultra-fast, robust, and interpretable defense against image spam.</li>
+                            <li>Multi-modal visual features (RGB, HSV, Sobel) successfully capture spam typography and synthetic saturation.</li>
+                            <li>Laplace smoothing guarantees stability across unobserved colors.</li>
+                            <li>Full academic report and production web application ready for deployment.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="highlight-card" style="border-left-color: #48cae4;">
+                        <h6 class="fw-bold text-info"><i class="fa-solid fa-comments me-2"></i> Q&A / Viva Voce Ready</h6>
+                        <p class="small text-white-50 mb-0">Prepared to answer all faculty questions on Bayes' theorem, Laplace smoothing, color space conversions, and histogram binning tradeoffs!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Navigation Footer -->
+    <div class="slide-footer">
+        <button class="btn btn-outline-light btn-sm fw-semibold" id="prevBtn" onclick="prevSlide()">
+            <i class="fa-solid fa-chevron-left me-1"></i> Previous
+        </button>
+        <span class="text-white-50 small" id="slideIndicator">Slide 1 of 10 &middot; Use Arrow Keys (&larr; / &rarr;)</span>
+        <button class="btn btn-info btn-sm fw-semibold text-dark" id="nextBtn" onclick="nextSlide()">
+            Next <i class="fa-solid fa-chevron-right ms-1"></i>
+        </button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll(".slide");
+        const slideIndicator = document.getElementById("slideIndicator");
+
+        function showSlide(index) {
+            slides.forEach((s, i) => {
+                s.classList.remove("active");
+                if (i === index) s.classList.add("active");
+            });
+            slideIndicator.textContent = `Slide ${index + 1} of ${slides.length} &middot; Use Arrow Keys (\u2190 / \u2192)`;
+        }
+
+        function nextSlide() {
+            if (currentSlide < slides.length - 1) {
+                currentSlide++;
+                showSlide(currentSlide);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                showSlide(currentSlide);
+            }
+        }
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "ArrowRight" || e.key === " ") nextSlide();
+            if (e.key === "ArrowLeft") prevSlide();
+        });
+    </script>
+</body>
+</html>

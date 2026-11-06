@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Batch Test Evaluation - DS307 Computer Vision{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h3 class="fw-bold text-dark mb-0">Batch Hold-Out Test Evaluation</h3>
+                <p class="text-muted small mb-0">Testing 40 independent evaluation samples (20 Spam, 20 Ham) against Bayesian decision rule</p>
+            </div>
+            <div>
+                <form method="GET" action="/batch" class="d-flex align-items-center gap-2">
+                    <label class="small fw-bold text-muted text-nowrap">Threshold &tau;:</label>
+                    <input type="number" step="0.05" min="0.1" max="0.9" name="threshold" value="{{ threshold }}" class="form-control form-control-sm" style="width: 80px;">
+                    <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Alert -->
+<div class="alert alert-success d-flex align-items-center justify-content-between flex-wrap gap-2 shadow-sm border-0 mb-4">
+    <div class="d-flex align-items-center">
+        <i class="fa-solid fa-circle-check fs-3 me-3 text-success"></i>
+        <div>
+            <h6 class="mb-0 fw-bold">Evaluation Summary (Threshold = {{ threshold }})</h6>
+            <span class="small">Total Samples: {{ metrics.total_samples }} | Accuracy: <strong>{{ metrics.accuracy }}%</strong> | F1-Score: <strong>{{ metrics.f1_score }}%</strong> | AUC: <strong>{{ metrics.auc }}</strong></span>
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <span class="badge bg-success py-2 px-3">TP: {{ metrics.true_positives }}</span>
+        <span class="badge bg-primary py-2 px-3">TN: {{ metrics.true_negatives }}</span>
+        <span class="badge bg-warning text-dark py-2 px-3">FP: {{ metrics.false_positives }}</span>
+        <span class="badge bg-danger py-2 px-3">FN: {{ metrics.false_negatives }}</span>
+    </div>
+</div>
+
+<!-- Detailed Table -->
+<div class="card border-0 shadow-sm rounded-3 bg-white">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 text-center">
+                <thead class="table-light small">
+                    <tr>
+                        <th>#</th>
+                        <th>Preview</th>
+                        <th>Filename</th>
+                        <th>Ground Truth</th>
+                        <th>Bayes Prediction</th>
+                        <th>P(Spam | Image)</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody class="small">
+                    {% for r in results %}
+                    <tr class="{% if not r.correct %}table-danger{% endif %}">
+                        <td class="text-muted">{{ loop.index }}</td>
+                        <td>
+                            {% if r.true_label == 'SPAM' %}
+                            <img src="/static/test_samples/spam/{{ r.filename }}" class="rounded border" style="width: 50px; height: 38px; object-fit: cover;">
+                            {% else %}
+                            <img src="/static/test_samples/ham/{{ r.filename }}" class="rounded border" style="width: 50px; height: 38px; object-fit: cover;">
+                            {% endif %}
+                        </td>
+                        <td class="fw-semibold text-start">{{ r.filename }}</td>
+                        <td>
+                            {% if r.true_label == 'SPAM' %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">SPAM</span>
+                            {% else %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle">HAM</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if r.pred_label == 'SPAM' %}
+                            <span class="badge bg-danger">SPAM</span>
+                            {% else %}
+                            <span class="badge bg-success">HAM</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="progress" style="height: 16px; min-width: 100px;">
+                                <div class="progress-bar {% if r.prob_spam >= 0.5 %}bg-danger{% else %}bg-success{% endif %}" 
+                                     role="progressbar" 
+                                     style="width: {{ (r.prob_spam * 100)|round(1) }}%;">
+                                    {{ (r.prob_spam * 100)|round(1) }}%
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if r.correct %}
+                            <i class="fa-solid fa-circle-check text-success fs-5" title="Correct"></i>
+                            {% else %}
+                            <i class="fa-solid fa-circle-xmark text-danger fs-5" title="Incorrect"></i>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
